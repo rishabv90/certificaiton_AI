@@ -1,0 +1,526 @@
+package org.university.software;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.ComponentOrientation;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
+
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.JViewport;
+import javax.swing.ScrollPaneLayout;
+
+import org.university.hardware.*;
+import org.university.people.*;
+
+
+public class UniversityGUI extends JFrame
+{
+	private University  uni;
+	private JMenuBar menuBar;		//the horizontal container
+	private JMenu adminMenu;		//JMenu objects are added to JMenuBar objects as the "tabs"
+	private JMenu fileMenu;			//JMenu for File options (Save, Load, Exit)
+	private JMenu studentMenu;		//JMenu for student options (Add Course, Drop Course, Print Schedule)
+
+
+	private JMenuItem fileLoad;
+	private JMenuItem fileSave;
+	private JMenuItem fileExit;	
+
+	private JMenuItem addCourse;
+	private JMenuItem dropCourse;
+	private JMenuItem printSchedule;
+
+	private JMenuItem printAllInfo;
+
+	public UniversityGUI(String windowTitle, University univ) {
+		super(windowTitle);
+		uni = new University(univ);
+		//For testing purpose
+		//uni.printAll();
+		setSize(700,400);
+		setLayout(new FlowLayout(FlowLayout.CENTER));
+		add(new JLabel ("<HTML><center>Welcome to University" +
+				"<BR>Choose an action from the above menus.</center></HTML>"));
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		buildGUI();
+
+		setVisible(true);
+	}
+
+	public void buildGUI() {
+		menuBar = new JMenuBar();
+		fileMenu = new JMenu("File");
+		studentMenu = new JMenu("Students");
+		adminMenu = new JMenu("Administrators");
+
+		fileSave = new JMenuItem("Save");
+		fileLoad = new JMenuItem("Load");
+		fileExit = new JMenuItem("Exit");
+
+		fileSave.addActionListener(new MenuListener());
+		fileLoad.addActionListener(new MenuListener());
+		fileExit.addActionListener(new MenuListener());
+
+		fileMenu.add(fileSave);
+		fileMenu.add(fileLoad);
+		fileMenu.add(fileExit);
+
+		addCourse = new JMenuItem("Add Course");
+		dropCourse = new JMenuItem("Drop Course");
+		printSchedule = new JMenuItem("Print Schedule");
+
+		addCourse.addActionListener(new MenuListener());
+		dropCourse.addActionListener(new MenuListener());
+		printSchedule.addActionListener(new MenuListener());
+
+		studentMenu.add(addCourse);
+		studentMenu.add(dropCourse);
+		studentMenu.add(printSchedule);
+
+		printAllInfo = new JMenuItem("Print All Info");
+		printAllInfo.addActionListener(new MenuListener());
+		adminMenu.add(printAllInfo);
+
+		menuBar.add(fileMenu);
+		menuBar.add(studentMenu);
+		menuBar.add(adminMenu);
+		setJMenuBar(menuBar);
+
+	}
+	private class MenuListener implements ActionListener{
+		public void actionPerformed(ActionEvent e) //this is the method MenuListener must implement, as it comes from the ActionListener interface.
+		{
+			JMenuItem source = (JMenuItem)(e.getSource()); //the menu item we clicked
+			if(source.equals(fileSave))									// Save
+			{
+				University.saveData(uni);
+			}
+			else if (source.equals(fileLoad)) 
+			{
+				uni = University.loadData();
+			}
+			else if (source.equals(fileExit))
+			{
+				System.exit(0);
+			}
+			else if (source.equals(addCourse))
+			{
+				handleStudentAddCourse();
+			}
+			else if (source.equals(dropCourse))
+			{
+				handleStudentdropCourse();
+			}
+			else if (source.equals(printSchedule))
+			{
+				handlePrintSchedule();
+			}
+			else if (source.equals(printAllInfo))
+			{
+				handleAdminPrint();
+			} 
+
+		}
+		//***********************************************************************************************
+		private void handleStudentAddCourse() 
+		{
+			JTextField sName = new JTextField();
+			JTextField dName= new JTextField();
+			JTextField courseNum= new JTextField();
+			Object[] message = {
+					"Student Name:", sName,
+					"Department:", dName,
+					"Course #:", courseNum
+			};
+			Student s= new Student();
+			Integer number;
+
+			boolean check=false;
+			int option = JOptionPane.showConfirmDialog(null, message, "Add Course", 
+					JOptionPane.OK_CANCEL_OPTION);
+
+			if (option==JOptionPane.OK_OPTION)
+			{
+				if(sName.getText()!=null)
+				{
+					if (sName.getText().trim().equals(""))
+					{
+						JOptionPane.showMessageDialog(null,
+								"Please enter correct Student name",
+								"Error Student field is Empty",
+								JOptionPane.ERROR_MESSAGE);
+						
+					}
+					else if (dName.getText().trim().equals(""))
+					{
+						JOptionPane.showMessageDialog(null,
+								"Please enter correct Department name",
+								"Error Department Field is Empty",
+								JOptionPane.ERROR_MESSAGE);
+					}
+					else if (courseNum.getText().trim().equals(""))
+					{
+						JOptionPane.showMessageDialog(null,
+								"Please enter correct Course Number",
+								"Error Course Field is Empty",
+								JOptionPane.ERROR_MESSAGE);
+					}
+					else {
+						number = Integer.parseInt(courseNum.getText().trim());
+						if (studentExist(sName.getText())==false)
+						{
+							JOptionPane.showMessageDialog(null, "Student " + sName.getText() + 
+									" does not exist", "Error adding student to course", JOptionPane.PLAIN_MESSAGE);
+						}
+						else if (departmentExist(dName.getText())==false)
+						{
+							JOptionPane.showMessageDialog(null, "Department " + dName.getText() + 
+									" does not exist", "Error adding student to course", JOptionPane.PLAIN_MESSAGE);
+						}
+						else if (courseExist(dName.getText(), number.intValue())==false)
+						{
+							JOptionPane.showMessageDialog(null, "Course " + dName.getText() + number + " does not exist"
+									, "Error adding student to course", JOptionPane.PLAIN_MESSAGE);
+						}
+						else 
+						{
+							for (Department d: uni.departmentList) {
+								if (d.getDepartmentName().equals(dName.getText())){
+									for(Student stu: d.getStudentList()) {
+										if(stu.getName().equals(sName.getText())) {
+											s = stu;
+											break;
+										}
+									}
+
+									for (Course c1: d.getCourseList()) {
+										number = Integer.parseInt(courseNum.getText());
+										if (c1.getCourseNumber()==number.intValue())
+										{
+											if (s.detectConflict(c1)) {
+												JOptionPane.showMessageDialog(null, dName.getText()+courseNum.getText()+
+														" cannot be added to " + sName.getText() + "'s schedule. There's a schedule conflict."
+														, "Error adding student to Course", JOptionPane.ERROR_MESSAGE);
+												check = true;
+											}
+											else if (s.getCourseList().contains(c1)) {
+												JOptionPane.showMessageDialog(null, s.getName() + " is already enrolled in the class", 
+														"Error adding student to Course", JOptionPane.ERROR_MESSAGE);
+											}
+											else {
+												check = true;
+												s.addCourse(c1);
+												JOptionPane.showMessageDialog(null, "You have successfully add the course " + 
+												c1.getDepartment().getDepartmentName() + c1.getCourseNumber() + " "+ c1.getName(), 
+												"Added Course", JOptionPane.PLAIN_MESSAGE);
+											}
+										}
+									} 
+								}
+							}
+							if (check == false) {
+								JOptionPane.showMessageDialog(null, "Course: "+
+							dName.getText()+courseNum.getText()+ " doesn't exist", "Error adding student to Course",
+							JOptionPane.PLAIN_MESSAGE);
+							}
+						}
+					}
+				}
+			}
+		}
+		//***********************************************************************************************
+		private void handleStudentdropCourse() 
+		{
+			JTextField sName = new JTextField();
+			JTextField dName= new JTextField();
+			JTextField courseNum= new JTextField();
+			Object[] message = {
+					"Student Name:", sName,
+					"Department:", dName,
+					"Course #:", courseNum
+			};
+			Student s= new Student(); 
+			Integer number;
+
+			int option = JOptionPane.showConfirmDialog(null, message, "Drop Course", 
+					JOptionPane.OK_CANCEL_OPTION);
+
+			if (option==JOptionPane.OK_OPTION)
+			{
+				if(sName.getText()!=null)
+				{
+					if (sName.getText().trim().equals(""))
+					{
+						JOptionPane.showMessageDialog(null,
+								"Please enter correct Student name",
+								"Error Student field is Empty",
+								JOptionPane.ERROR_MESSAGE);
+					}
+					else if (dName.getText().trim().equals(""))
+					{
+						JOptionPane.showMessageDialog(null,
+								"Please enter correct Department name",
+								"Error Department Field is Empty",
+								JOptionPane.ERROR_MESSAGE);
+					}
+					else if (courseNum.getText().trim().equals(""))
+					{
+						JOptionPane.showMessageDialog(null,
+								"Please enter correct Course Number",
+								"Error Course Field is Empty",
+								JOptionPane.ERROR_MESSAGE);
+					}
+					else {
+						number = Integer.parseInt(courseNum.getText().trim());
+						if (studentExist(sName.getText())==false)
+						{
+							JOptionPane.showMessageDialog(null, "Student " + sName.getText() + 
+									" does not exist", "Error dropping student from course", JOptionPane.PLAIN_MESSAGE);
+						}
+						else if (departmentExist(dName.getText())==false)
+						{
+							JOptionPane.showMessageDialog(null, "Department " + dName.getText() + 
+									" does not exist", "Error dropping student from course", JOptionPane.PLAIN_MESSAGE);
+						}
+						else if (courseExist(dName.getText(), number.intValue())==false)
+						{
+							JOptionPane.showMessageDialog(null, "Course " + dName.getText() + number + " does not exist"
+									, "Error dropping student from course", JOptionPane.PLAIN_MESSAGE);
+						}
+						else 
+						{
+							for (Department d: uni.departmentList) {
+								if (d.getDepartmentName().equals(dName.getText())){
+									for(Student stu: d.getStudentList()) {
+										if(stu.getName().equals(sName.getText())) {
+											s = stu;
+											break;
+										}
+									}
+
+									for (Course c1: d.getCourseList()) {
+										number = Integer.parseInt(courseNum.getText());
+										if (c1.getCourseNumber()==number.intValue())
+										{
+											if (!s.getCourseList().contains(c1)) {
+												JOptionPane.showMessageDialog(null, s.getName() + " is not enrolled in the class" + 
+											c1.getDepartment().getDepartmentName() + c1.getCourseNumber(), 
+														"Error dropping student from Course", JOptionPane.ERROR_MESSAGE);
+											}
+											else {
+												s.dropCourse(c1);
+												JOptionPane.showMessageDialog(null, "You have successfully drop the course " + c1.getDepartment().getDepartmentName() + c1.getCourseNumber()+ " " + c1.getName(), "Dropped Course", JOptionPane.PLAIN_MESSAGE);
+											}
+										}
+									} 
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		//***********************************************************************************************
+		private void handlePrintSchedule()
+		{
+			JTextField sName = new JTextField();
+			Object[] message = {
+					"Student Name: ", sName
+			};
+			int option = JOptionPane.showConfirmDialog(null, message, "Print student's schedule", 
+					JOptionPane.OK_CANCEL_OPTION);
+			Student s = new Student();
+
+			if (sName.getText()!= null && option == JOptionPane.OK_OPTION) {
+				if (studentExist(sName.getText())) {
+					JFrame a = new JFrame();
+					a.getContentPane().setLayout(new BorderLayout());
+					a.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+					a.setTitle("Student "+ sName.getText()+ "'s Schedule");
+					a.setSize(1000,2000);
+					a.setLocation(200,200);
+					a.setVisible(false);
+					ByteArrayOutputStream printSchedule= new ByteArrayOutputStream();
+					PrintStream now=new PrintStream(printSchedule);
+
+					PrintStream prev= System.out;
+
+					System.setOut(now);
+					//call the printScheduleGUI for this current student
+					for (Department d: uni.departmentList) {
+						for (Student s1: d.getStudentList()) {
+							if (s1.getName().equals(sName.getText())) {
+								s = s1;
+								break;
+							}
+						}
+					}
+					s.printSchedule();
+					
+					JTextArea scheduleText = new JTextArea(printSchedule.toString());
+
+					System.out.flush();
+					System.setOut(prev);
+
+					JPanel p = new JPanel();
+					JButton okButton = new JButton("OK");
+					JPanel buttonPane = new JPanel();
+					//add OK button
+					buttonPane.add(okButton);
+					
+					p.setBackground(Color.WHITE);
+					p.setPreferredSize(new Dimension(500,500));
+					p.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+					p.add(scheduleText);
+					
+					JDialog d = new JDialog(a, "Student "+ sName.getText() + "'s Schedule", false);
+					d.getContentPane().add(buttonPane, BorderLayout.PAGE_END);
+					d.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+					d.add(p);
+					d.setSize(500,300);
+					d.setLocation(250,250);
+					d.setVisible(true); 
+					okButton.addActionListener(new java.awt.event.ActionListener() {
+					    public void actionPerformed(java.awt.event.ActionEvent evt) {
+					           okButtonActionPerformed(evt);
+					    }
+					    private void okButtonActionPerformed(java.awt.event.ActionEvent evt) {
+					    	d.dispose();
+						}
+					});
+				}
+				else {
+					JOptionPane.showMessageDialog(null, "Please enter correct Student name",
+							  "Error Student doesn't exist", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		}
+		//***********************************************************************************************
+		private void handleAdminPrint()
+		{
+			JFrame a = new JFrame();
+			a.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			a.setTitle("University Info");
+			a.setSize(1000,2000);
+			a.setLocation(200,200);
+			a.setVisible(false);
+			// Handling the System.out stream switch
+			ByteArrayOutputStream printAll= new ByteArrayOutputStream();
+
+			PrintStream now=new PrintStream(printAll);
+
+			PrintStream old= System.out;
+			// Change default system.out
+
+			System.setOut(now);
+			uni.printAdminAll();
+
+			// Make a new text area with the string version of printAll
+			JTextArea adminText = new JTextArea(printAll.toString());
+
+			// Flush the system.out after textArea is created
+			System.out.flush();
+
+			//Reset the system.out back to the old stream
+			System.setOut(old);
+
+			// Make a new panel to handle the new JScrollPane
+			JPanel p = new JPanel();
+			JPanel buttonPane = new JPanel();
+			JButton okButton = new JButton("OK");
+			buttonPane.add(okButton);
+			p.setBackground(Color.WHITE);
+			p.setPreferredSize(new Dimension(400,3000));
+			p.add(adminText);
+			JDialog d = new JDialog(a, "University Info", false);
+			d.getContentPane().add(buttonPane, BorderLayout.PAGE_END);
+			d.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+			d.add(new JScrollPane(p));
+			d.setSize(600,900);
+			d.setLocation(250,500);
+			d.setVisible(true);	
+			okButton.addActionListener(new java.awt.event.ActionListener() {
+			    public void actionPerformed(java.awt.event.ActionEvent evt) {
+			           okButtonActionPerformed(evt);
+			    }
+			    private void okButtonActionPerformed(java.awt.event.ActionEvent evt) {
+			    	d.dispose();
+				}
+			});
+			
+		}
+		//***********************************************************************************************
+		//Function to check Existence of the student, course, department
+		private boolean studentExist(String studentName) {
+			if (studentName != null)
+			{
+				for(Department d: uni.departmentList) {
+					for (int i = 0; i < d.getStudentList().size(); i++) {
+						if (d.getStudentList().get(i).getName().equals(studentName)) {
+							return true;
+						}
+						/*
+						else if (d.getStaffList().get(i).getName().equals(studentName)) {
+							return true;
+						} */
+					}
+				}
+			}
+			return false;
+		}
+		private boolean departmentExist(String departmentName)
+		{
+			if (departmentName != null)
+			{
+				for(Department d: uni.departmentList)
+				{
+					if (d.getDepartmentName().equals(departmentName))
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		private boolean courseExist (String department, int courseNum)
+		{
+			if (department != null)
+			{
+				for(int j = 0; j < uni.departmentList.size(); j++)
+				{
+					Department d = uni.departmentList.get(j);
+					if (d.getDepartmentName().equals(department)) {
+						for (int i = 0; i < d.getCourseList().size(); i++) {
+							if (d.getCourseList().get(i).getCourseNumber() == courseNum) {
+								return true; 
+							}
+						}
+					}
+				}
+			}
+			return false;
+		}
+
+	}
+}
